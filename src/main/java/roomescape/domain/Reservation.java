@@ -1,27 +1,44 @@
 package roomescape.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import org.yaml.snakeyaml.events.Event;
+import roomescape.DTO.ReservationDTO;
+import roomescape.domain.value.Date;
+import roomescape.domain.value.ID;
+import roomescape.domain.value.Name;
+import roomescape.domain.value.Time;
+
+import javax.naming.Name;
+import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Date;
+
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Reservation {
-    private Long id;
-    private String name;
-    private String date;
-    private String time;
+    private ID id;
+    private Name name;
+    private Date date;
+    private Time time;
 
     public Reservation(Long id, String name, String date, String time) {
-        this.id = id;
-        this.name = name;
-        this.date = date;
-        this.time = time;
+        this.id = new ID(id);
+        this.name = new Name(name);
+        this.date = new Date(date);
+        this.time = new Time(time);
     }
 
-    public boolean validate() {
-        if(this.getDate() == "" || this.getTime() == ""){
-            return false;
-        }
-        return true;
+    public ReservationDTO toDTO() {
+        return new ReservationDTO(this.id.getId(), this.name.getName(), this.date.getDate(), this.time.getTime());
     }
 
-    public Long getId() {
-        return id;
+    public Long getID() {
+        return id.getId;
     }
 
     public void setId(Long id) {

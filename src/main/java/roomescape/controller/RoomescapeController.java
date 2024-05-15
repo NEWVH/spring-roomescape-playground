@@ -2,24 +2,39 @@ package roomescape.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import roomescape.DBService;
+import roomescape.DTO.ReservationDTO;
 import roomescape.domain.Reservation;
+import roomescape.controller.exception.InvalidReservationException;
+import roomescape.controller.exception.NotFoundReservationException;
+import roomescape.domain.value.Date;
+import roomescape.domain.value.ID;
+import roomescape.domain.value.Name;
+import roomescape.domain.value.Time;
+import roomescape.DBService;
+
+import javax.validation.Valid;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 
 @Controller
 public class RoomescapeController {
-    private AtomicLong id = new AtomicLong(1);
-    List<Reservation> reservations = new ArrayList<Reservation>();
+    private final DBService dbService;
+    private List<Reservation> reservations = new ArrayList<>();
+    private AtomicLong counter = new AtomicLong(1);
 
-    @GetMapping("/")
-    public String welcomePage() {
-        return "home";
+    public RoomescapeController(DBService dbService) {
+        this.dbService = dbService;
     }
+
+
 
     @GetMapping("/reservation")
     public String reservationPage() {
@@ -27,35 +42,40 @@ public class RoomescapeController {
     }
 
     @GetMapping("/reservations")
-    public ResponseEntity<List<Reservation>> checkReservations() {
-        return ResponseEntity.ok(reservations);
+    @ResponseBody
+    public List<ReservationDTO> getReservations() {
+        List<Reservation> reservations = dbService.getAllReservations();
+        return reservations.stream()
+                .map(reservation -> new ReservationDTO(reservation.getID(), reservation.getName(), reservation.getDate(), reservation.getTime()))
+                .collect(Collectors.toList());
+
+
     }
 
     @PostMapping("/reservations")
-    public ResponseEntity<Reservation> createReservation(@RequestBody Reservation reservation) {
-        if (!reservation.validate()) {
-            return ResponseEntity.status(400).build();
+    public ResponseEntity<ReservationDTO> addReservation(@Valid @RequestBody ReservationDTO reservationDTO, BindingResult result) {
+        if (result.hasErrors()) {
+            String errorMessage = result.getFieldError().getDefaultMessage();
+            throw new InvalidReservationException(errorMessage);
         }
-
-        Reservation newReservation = new Reservation(id.getAndIncrement(), reservation.getName(), reservation.getDate(), reservation.getTime());
-
+        Reservation newReservation = Reservation.builder()
+                .id(new ID(counter.incrementAndGet()))
+                .name(new Name(reservationDTO.getName()))
+                .date(new Date(reservationDTO.getDate()))
+                .time(new Time(reservationDTO.getTime()))
+                .build();
         reservations.add(newReservation);
-        URI location = URI.create("/reservations/" + newReservation.getId());
-        return ResponseEntity.created(location).body(newReservation);
+        return ResponseEntity
+                .created(URI.create("/reservations/" + newReservation.getID()))
+                .body(newReservation.toDTO());
     }
 
     @DeleteMapping("/reservations/{id}")
     public ResponseEntity<Void> deleteReservation(@PathVariable Long id) {
-        try {
-            Reservation reservation = reservations.stream()
-                    .filter(it -> Objects.equals(it.getId(), id))
-                    .findFirst()
-                    .orElseThrow(RuntimeException::new);
-            reservations.remove(reservation);
-        }catch (RuntimeException e){
-            return ResponseEntity.status(400).build();
-        }
-
+            boolean removed = reservations.removeIf(reservation -> reservation.getID().equals(id));
+            if (!removed) {
+                throw new NotFoundReservationException();
+            }
         return ResponseEntity.noContent().build();
     }
 }
