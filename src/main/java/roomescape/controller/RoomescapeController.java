@@ -19,7 +19,6 @@ import javax.validation.Valid;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -27,13 +26,9 @@ import java.util.stream.Collectors;
 @Controller
 public class RoomescapeController {
     private final DBService dbService;
-    private List<Reservation> reservations = new ArrayList<>();
-    private AtomicLong counter = new AtomicLong(1);
-
     public RoomescapeController(DBService dbService) {
         this.dbService = dbService;
     }
-
 
 
     @GetMapping("/reservation")
@@ -49,7 +44,6 @@ public class RoomescapeController {
                 .map(reservation -> new ReservationDTO(reservation.getID(), reservation.getName(), reservation.getDate(), reservation.getTime()))
                 .collect(Collectors.toList());
 
-
     }
 
     @PostMapping("/reservations")
@@ -58,13 +52,8 @@ public class RoomescapeController {
             String errorMessage = result.getFieldError().getDefaultMessage();
             throw new InvalidReservationException(errorMessage);
         }
-        Reservation newReservation = Reservation.builder()
-                .id(new ID(counter.incrementAndGet()))
-                .name(new Name(reservationDTO.getName()))
-                .date(new Date(reservationDTO.getDate()))
-                .time(new Time(reservationDTO.getTime()))
-                .build();
-        reservations.add(newReservation);
+
+        Reservation newReservation = dbService.addReservation(new Reservation(reservationDTO.getName(), reservationDTO.getDateToString(), reservationDTO.getTimeToString()));
         return ResponseEntity
                 .created(URI.create("/reservations/" + newReservation.getID()))
                 .body(newReservation.toDTO());
@@ -72,10 +61,7 @@ public class RoomescapeController {
 
     @DeleteMapping("/reservations/{id}")
     public ResponseEntity<Void> deleteReservation(@PathVariable Long id) {
-            boolean removed = reservations.removeIf(reservation -> reservation.getID().equals(id));
-            if (!removed) {
-                throw new NotFoundReservationException();
-            }
+        dbService.cancelReservation(id);
         return ResponseEntity.noContent().build();
     }
 }

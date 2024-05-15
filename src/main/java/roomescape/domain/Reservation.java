@@ -3,18 +3,16 @@ package roomescape.domain;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
-import org.yaml.snakeyaml.events.Event;
+import lombok.RequiredArgsConstructor;
 import roomescape.DTO.ReservationDTO;
 import roomescape.domain.value.Date;
 import roomescape.domain.value.ID;
 import roomescape.domain.value.Name;
 import roomescape.domain.value.Time;
 
-import javax.naming.Name;
-import java.sql.Time;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Date;
 
 
 @NoArgsConstructor
@@ -33,42 +31,38 @@ public class Reservation {
         this.time = new Time(time);
     }
 
+    public Reservation(String name, String date, String time) {
+        this.name = new Name(name);
+        this.date = new Date(date);
+        this.time = new Time(time);
+    }
+
+    public Reservation(Long newId, String name, LocalDate date, LocalTime time) {
+        this.id = new ID(newId);
+        this.name = new Name(name);
+        this.date = new Date(date);
+        this.time = new Time(time);
+    }
+
+
     public ReservationDTO toDTO() {
         return new ReservationDTO(this.id.getId(), this.name.getName(), this.date.getDate(), this.time.getTime());
     }
 
     public Long getID() {
-        return id.getId;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
+        return id.getId();
     }
 
     public String getName() {
-        return name;
+        return name.getName();
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public LocalDate getDate() {
+        return date.getDate();
     }
 
-    public String getDate() {
-        return date;
+    public LocalTime getTime() {
+        return time.getTime();
     }
-
-    public void setDate(String date) {
-        this.date = date;
-    }
-
-    public String getTime() {
-        return time;
-    }
-
-    public void setTime(String time) {
-        this.time = time;
-    }
-
-
 
 }
